@@ -1,5 +1,5 @@
 ---
-title: "Assignment 1"
+title: "Assignment 1 - Task 1"
 author: "Conner Smith"
 date: "1/13/2022"
 output: 
@@ -7,9 +7,67 @@ output:
     theme: flatly
 ---
 
+## **Overview**
+
+This task explores amphibian abundance data recorded by the Sierra Lakes Inventory Project which ran from 1995-2002 and has supported research and management of Sierra Nevada aquatic ecosystems and their terrestrial interfaces.  
+
+*Data citation: Knapp, R.A., C. Pavelka, E.E. Hegeman, and T.C. Smith. 2020. The Sierra Lakes Inventory Project: Non-Native fish and community composition of lakes and ponds in the Sierra Nevada, California ver 2. Environmental Data Initiative. https://doi.org/10.6073/pasta/d835832d7fd00d9e4466e44eea87fab3*
+
 ```{r setup, include=FALSE, message=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 
+library(tidyverse)
+library(here)
+library(cowplot)
+library(patchwork)
+library(lubridate)
 
 ```
 
+## **Analysis**
+
+```{r}
+# Read in xlsx file with 'read_xlsx
+
+frogs <- readxl::read_xlsx(here("data", "sierra_amphibians.xlsx"))
+```
+
+... 
+
+```{r}
+# Filter for Mountain Yellow-legged Frogs (Species code: RAMU), excluding egg life stage (code: EggMass) and group by year and lifestage. 
+
+frogs_clean <- frogs %>% 
+  filter(amphibian_species == 'RAMU',
+         amphibian_life_stage != 'EggMass') %>% 
+  mutate(date = ymd(survey_date)) %>%
+  mutate(year = year(date)) %>% 
+  select(year, amphibian_species, 
+         amphibian_life_stage, amphibian_number) %>%
+  group_by(year, amphibian_life_stage) 
+  
+  
+frogs_summary <- frogs_clean %>% 
+  summarize(count = n())
+
+```
+
+### **Figure 1: Mountain Yellow-legged Frog Count By Year and Life Stage**
+
+```{r}
+# Create a column graph of the above data frame
+
+ggplot(data = frogs_summary, aes(x = year, y = count)) +
+  geom_col(aes(fill = amphibian_life_stage), 
+           width = 0.75, 
+           position = "dodge",
+           show.legend = TRUE) +
+  scale_fill_manual(labels = c("Adult", "Sub-Adult", "Tadpole"),
+                               values = c("yellowgreen",
+                                          "darkseagreen4", "skyblue3")) +
+  theme_bw() +
+  labs(x = "Year", y = "Count", fill = 'Life Stage')
+
+```
+
+#### **Figure 1:** *This graph provides a count of observed Mountain Yellow-legged Frogs by life stage and year between 1995 and 2002. There were no observations in 1998 or 1999. The highest number of frogs were observed in 2002.*
