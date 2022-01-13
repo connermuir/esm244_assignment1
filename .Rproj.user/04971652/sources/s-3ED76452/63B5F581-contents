@@ -1,0 +1,15 @@
+---
+title: "Assignment 1"
+author: "Conner Smith"
+date: "1/13/2022"
+output: 
+  html_document: 
+    theme: flatly
+---
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+
+```
+
