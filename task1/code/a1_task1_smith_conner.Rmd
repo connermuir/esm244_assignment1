@@ -5,6 +5,7 @@ date: "1/13/2022"
 output: 
   html_document: 
     theme: flatly
+    code_folding: hide
 ---
 
 ## **Overview**
@@ -43,7 +44,7 @@ frogs_clean <- frogs %>%
   mutate(date = ymd(survey_date)) %>%
   mutate(year = year(date)) %>% 
   select(year, amphibian_species, 
-         amphibian_life_stage, amphibian_number) %>%
+         amphibian_life_stage, amphibian_number, lake_id) %>%
   group_by(year, amphibian_life_stage) 
   
   
@@ -57,17 +58,75 @@ frogs_summary <- frogs_clean %>%
 ```{r}
 # Create a column graph of the above data frame
 
-ggplot(data = frogs_summary, aes(x = year, y = count)) +
+years <- ggplot(data = frogs_summary, aes(x = year, y = count)) +
   geom_col(aes(fill = amphibian_life_stage), 
            width = 0.75, 
            position = "dodge",
            show.legend = TRUE) +
   scale_fill_manual(labels = c("Adult", "Sub-Adult", "Tadpole"),
                                values = c("yellowgreen",
-                                          "darkseagreen4", "skyblue3")) +
+                                          "seagreen3", "skyblue3")) +
   theme_bw() +
   labs(x = "Year", y = "Count", fill = 'Life Stage')
+
+years
 
 ```
 
 #### **Figure 1:** *This graph provides a count of observed Mountain Yellow-legged Frogs by life stage and year between 1995 and 2002. There were no observations in 1998 or 1999. The highest number of frogs were observed in 2002.*
+
+### **Figure 2: Top 5 Lakes for Mountain Yellow-legged Frog Count**
+
+```{r}
+# Create a second graph categorizing counts by the top five lakes 
+
+top_lakes <- frogs_clean %>%
+  filter(amphibian_life_stage != 'Tadpole') %>% 
+  group_by(lake_id) %>%
+  summarize(count = n()) %>% 
+  slice_max(order_by = count, n = 5) %>% 
+  mutate(lake_id = paste("Lake ", lake_id)) %>% 
+  mutate(lake_id = fct_reorder(lake_id, count))
+  
+
+# Make the graph
+
+lakes <- ggplot(data = top_lakes, aes(x = reorder(lake_id, -count), 
+                                      y = count)) +
+  geom_col(fill = "darkseagreen4",
+           width = 0.5,
+           show.legend = FALSE) +
+  theme_bw() +
+  labs(x = "Lake ID", y = "Count")
+
+lakes
+```
+
+```{r}
+# Combine the two figures using cowplot::plot_grid
+
+title <- ggdraw() + 
+  draw_label(
+    "Mountain Yellow-legged Frog Count by Lake and Life Stage",
+    fontface = 'bold',
+    x = 0,
+    hjust = 0) +
+  theme(plot.margin = margin(0, 0, 0, 7))
+
+plot_row <- plot_grid(lakes, years)
+
+
+plot_grid(title, plot_row, ncol = 1,
+  rel_heights = c(0.1, 1))
+
+
+
+```
+
+
+#### **Figure 2:** *This graph provides a count of observed Mountain Yellow-legged Frogs by life stage across the five lakes (by Lake ID) with the highest recorded counts. The counts are combines for adult and sub-adult frogs and tadpoles are excluded.*
+
+```{r}
+
+```
+
