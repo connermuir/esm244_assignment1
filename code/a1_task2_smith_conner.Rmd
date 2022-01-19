@@ -1,0 +1,137 @@
+---
+title: "Assignment 2 - Task 2"
+author: "Conner Smith"
+date: "1/18/2022"
+output: 
+  html_document: 
+    theme: flatly
+    code_folding: hide
+---
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(here)
+library(AICcmodavg)
+library(kableExtra)
+library(equatiomatic)
+```
+
+## **Overview**
+
+read in a small subset of seawater sample data from CalCOFI, then compare the performance of two competing linear regression models that predict oxygen saturation based on several physical and chemical variables, using AIC and cross validation.
+
+Data summary: You will explore the relationship between O2 saturation of seawater off California’s coast and several physical and chemical variables. From the CalCOFI site: “Since 1949, hydrographic and biological data of the California Current System have been collected on CalCOFI cruises. The 70+ year hydrographic time-series includes temperature, salinity, oxygen and phosphate observations. In 1961, nutrient analysis expanded to include silicate, nitrate and nitrite; in 1973, chlorophyll was added; in 1984, C14 primary productivity incubations were added; and in 1993, CTD profiling began.”
+
+*Data citation: CalCOFI data are available for use without restriction. Data downloaded from https://calcofi.org/ccdata.html.*
+
+```{r}
+# Read in the data
+
+sea <- read_csv(here("data", "calcofi_seawater_samples.csv"))
+```
+
+## **Model Comparisson **
+
+#### **Table 1: Corrected AIC Values Across Different Models**
+```{r}
+# Create and compare two to three linear regressions
+
+# Model 1 compares oxygen saturation as a function of water temperature, salinity, and phosphate concentration 
+
+f1 <- o2sat ~ t_deg_c + salinity + po4u_m
+mdl1 <- lm(f1, data = sea)
+
+# Model 2 is the same but adds a term for depth  
+
+f2 <- o2sat ~ t_deg_c + salinity + po4u_m + depth_m
+mdl2 <- lm(f2, data = sea)
+
+# Model 3 is exploratory and adds nitrite concentration while removing salinity
+
+f3 <- o2sat ~ t_deg_c + po4u_m + no2u_m + depth_m
+mdl3 <- lm(f3, data = sea)
+
+
+# Create a table displaying all the corrected AIC values, the low3est value indicates the greatest model fit. 
+
+aic_df <- data.frame() %>% 
+  summarize(aic_mdl1 = AICc(mdl1),
+            aic_mdl2 = AICc(mdl2),
+            aic_mdl3 = AICc(mdl3)) 
+
+aic_df %>% 
+  kable(col.names = c("Model 1",
+                    "Model 2",
+                    "Model 3"), digits = 3) %>% 
+  kable_styling(bootstrap_options = "striped", full_width = FALSE)
+
+```
+
+Model two has a lower corrected AIC value by more than two points, indicating it is a better fit than Model 1. This shows that depth is an important predictor variable for oxygen concentration. However, Model 3 has the lowest AIC value of all. Specifically, adding nitrite concentration and removing salinity improves the corrected AIC by 5 additional points. Model 3 will likely be the final model after the cross fold validation is performed.  
+
+```{r}
+# Perform 10-fold cross validation on the two models. 
+
+folds <- 10
+fold_vec <- rep(1:folds, length.out = nrow(sea))
+
+set.seed(10)
+
+sea_fold <- sea %>% 
+  mutate(group = sample(fold_vec, size = n(), replace = FALSE))
+
+
+# set up the fucntion to calcuate RMSE 
+calc_rmse <- function(x,y) {
+  rmse_result <- (x - y)^2 %>% mean() %>% sqrt()
+  return(rmse_result)
+}
+
+```
+
+```{r}
+# Calculate RMSE for all folds and then train the model on the entire data set. This mirrors the test process deom above.  
+
+rmse_df <- data.frame()
+
+for(i in 1:folds) {
+  kfold_test_df <- sea_fold %>% 
+    filter(group == i)
+  kfold_train_df <- sea_fold %>% 
+    filter(group != i)
+  
+  kfold_mdl1 <- lm(f1, data = kfold_train_df)
+  kfold_mdl2 <- lm(f2, data = kfold_train_df)
+  kfold_mdl3 <- lm(f3, data = kfold_train_df)
+ 
+  kfold_pred_df <- kfold_test_df %>% 
+    mutate(mdl1 = predict(kfold_mdl1, kfold_test_df),
+           mdl2 = predict(kfold_mdl2, kfold_test_df),
+           mdl3 = predict(kfold_mdl3, kfold_test_df))
+  
+  kfold_rmse <- kfold_pred_df %>% 
+    summarize(rmse_mdl1 = calc_rmse(mdl1, o2sat),
+              rmse_mdl2 = calc_rmse(mdl2, o2sat),
+              rmse_mdl3 = calc_rmse(mdl3, o2sat))
+  
+  rmse_df <- bind_rows(rmse_df, kfold_rmse)
+}
+
+rmse_df %>% 
+  summarize(rmse_mdl1 = mean(rmse_mdl1),
+            rmse_mdl2 = mean(rmse_mdl2),
+            rmse_mdl3 = mean(rmse_mdl3))
+
+# RMSE for Model 3 is lower than the value for Model 1 and Model 2
+```
+
+```{r}
+# Train the final model (model 2) on the entire data set (not the folds) 
+
+final_mdl3 <- lm(f2, data = sea)
+summary(final_mdl3)
+```
+
+
