@@ -1,5 +1,5 @@
 ---
-title: "Assignment 2 - Task 2"
+title: "Predicting Oxygen Concentration in California Seawater"
 author: "Conner Smith"
 date: "1/18/2022"
 output: 
@@ -20,21 +20,19 @@ library(equatiomatic)
 
 ## **Overview**
 
-read in a small subset of seawater sample data from CalCOFI, then compare the performance of two competing linear regression models that predict oxygen saturation based on several physical and chemical variables, using AIC and cross validation.
+This analysis looks at a small subset of seawater sample data from CalCOFI and compares the performance of three competing linear regression models that predict oxygen saturation based on several physical and chemical variables, using AIC and cross validation.
 
-Data summary: You will explore the relationship between O2 saturation of seawater off California’s coast and several physical and chemical variables. From the CalCOFI site: “Since 1949, hydrographic and biological data of the California Current System have been collected on CalCOFI cruises. The 70+ year hydrographic time-series includes temperature, salinity, oxygen and phosphate observations. In 1961, nutrient analysis expanded to include silicate, nitrate and nitrite; in 1973, chlorophyll was added; in 1984, C14 primary productivity incubations were added; and in 1993, CTD profiling began.”
+The study was designed to explore the connection between O2 saturation of seawater off California’s coast and several physical and chemical variables. The 70+ year hydrographic time-series includes temperature, salinity, oxygen and phosphate observations. In 1961, nutrient analysis expanded to include silicate, nitrate and nitrite. 
 
-*Data citation: CalCOFI data are available for use without restriction. Data downloaded from https://calcofi.org/ccdata.html.*
-
+## **Model Comparison**
 ```{r}
 # Read in the data
 
 sea <- read_csv(here("data", "calcofi_seawater_samples.csv"))
 ```
+This analysis compares three models using different iterations of the variables recorded in the dataset. It compares model fit using AIC values and a 10-fold cross-validation test. 
 
-## **Model Comparisson **
-
-#### **Table 1: Corrected AIC Values Across Different Models**
+##### **Table 1: Corrected AIC Values**
 ```{r}
 # Create and compare two to three linear regressions
 
@@ -62,14 +60,13 @@ aic_df <- data.frame() %>%
             aic_mdl3 = AICc(mdl3)) 
 
 aic_df %>% 
-  kable(col.names = c("Model 1",
-                    "Model 2",
-                    "Model 3"), digits = 3) %>% 
-  kable_styling(bootstrap_options = "striped", full_width = FALSE)
+  kable(col.names = c("Model 1", "Model 2", "Model 3"), digits = 3) %>% 
+  kable_styling(bootstrap_options = "striped", 
+                position = "left", full_width = FALSE)
 
 ```
 
-Model two has a lower corrected AIC value by more than two points, indicating it is a better fit than Model 1. This shows that depth is an important predictor variable for oxygen concentration. However, Model 3 has the lowest AIC value of all. Specifically, adding nitrite concentration and removing salinity improves the corrected AIC by 5 additional points. Model 3 will likely be the final model after the cross fold validation is performed.  
+Model 2 has a lower corrected AIC value by more than two points, indicating it is a better fit than Model 1. This shows that depth is an important predictor variable for oxygen concentration. However, Model 3 has the lowest AIC value of all. Specifically, adding nitrite concentration and removing salinity improves the corrected AIC by 5 additional points. Model 3 will likely be the final model after the cross fold validation is performed.  
 
 ```{r}
 # Perform 10-fold cross validation on the two models. 
@@ -83,17 +80,20 @@ sea_fold <- sea %>%
   mutate(group = sample(fold_vec, size = n(), replace = FALSE))
 
 
-# set up the fucntion to calcuate RMSE 
+# Set up the function to readily calculate RMSE 
+
 calc_rmse <- function(x,y) {
   rmse_result <- (x - y)^2 %>% mean() %>% sqrt()
   return(rmse_result)
 }
 
+# The following chunk performs the 10-fold cross-validation for all three models. 
+
 ```
 
+##### **Table 2: RMSE Values**
 ```{r}
-# Calculate RMSE for all folds and then train the model on the entire data set. This mirrors the test process deom above.  
-
+# Calculate RMSE for all folds and then train the model on the entire data set. 
 rmse_df <- data.frame()
 
 for(i in 1:folds) {
@@ -122,16 +122,25 @@ for(i in 1:folds) {
 rmse_df %>% 
   summarize(rmse_mdl1 = mean(rmse_mdl1),
             rmse_mdl2 = mean(rmse_mdl2),
-            rmse_mdl3 = mean(rmse_mdl3))
+            rmse_mdl3 = mean(rmse_mdl3)) %>% 
+  kable(col.names = c("Model 1", "Model 2", "Model 3"), digits = 3) %>% 
+  kable_styling(bootstrap_options = "striped", 
+                position = "left", full_width = FALSE)
 
 # RMSE for Model 3 is lower than the value for Model 1 and Model 2
 ```
 
+This 10-fold cross-validation confirms that Model 3 has the best fit given the lowest RMSE value. This means that Model 3 predicts the actual observed values for oxygen concentration with the highest level of accuracy compared to the other models. The following shows the final equation generated from Model 3: 
 ```{r}
-# Train the final model (model 2) on the entire data set (not the folds) 
+# Train the final model (model 3) on the entire data set (not the folds). 
 
-final_mdl3 <- lm(f2, data = sea)
-summary(final_mdl3)
+final_mdl3 <- lm(f3, data = sea)
+
+#Use `equatiomatic:: extract()` to generate an equation. 
+
+extract_eq(model = final_mdl3, use_coefs = TRUE)
 ```
 
+## **Data Citation**
 
+*CalCOFI data are available for use without restriction. Data downloaded from https://calcofi.org/ccdata.html.*
