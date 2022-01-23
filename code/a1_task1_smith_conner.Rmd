@@ -11,7 +11,7 @@ output:
 
 This task explores the occurrence of endangered Mountain Yellow-legged frogs in lakes throughout the Sierra Nevada region. Counts are drawn from amphibian abundance data recorded by the Sierra Lakes Inventory Project which ran from 1995-2002 and has supported research and management of Sierra Nevada aquatic ecosystems and their terrestrial interfaces. 
 
-```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+```{r setup, include=TRUE, message=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 
 library(tidyverse)
@@ -42,12 +42,12 @@ frogs_clean <- frogs %>%
   mutate(date = ymd(survey_date)) %>%
   mutate(year = year(date)) %>% 
   select(year, amphibian_species, 
-         amphibian_life_stage, amphibian_number, lake_id) %>%
+         amphibian_life_stage, amphibian_number, lake_id, amphibian_location) %>%
   group_by(year, amphibian_life_stage) 
   
   
 frogs_summary <- frogs_clean %>% 
-  summarize(count = n())
+  summarize(count = sum(amphibian_number, na.rm = TRUE))
 
 ```
 
@@ -73,12 +73,13 @@ years <- ggplot(data = frogs_summary, aes(x = year, y = count)) +
 
 top_lakes <- frogs_clean %>%
   filter(amphibian_life_stage != 'Tadpole') %>% 
+  filter(amphibian_location == "in lake") %>% 
   group_by(lake_id) %>%
-  summarize(count = n()) %>% 
-  slice_max(order_by = count, n = 5) %>% 
-  mutate(lake_id = paste("Lake ", lake_id)) %>% 
-  mutate(lake_id = fct_reorder(lake_id, count))
-  
+  summarize(count = sum(amphibian_number)) %>% 
+  mutate(lake_id = as.character(lake_id)) %>%
+  mutate(lake_id = paste("Lake", lake_id, sep = ' ')) %>% 
+  mutate(lake_id = fct_reorder(lake_id, count)) %>% 
+  slice_max(count, n = 5)
 
 # Make the graph but do not show it in the knitted document
 
@@ -89,7 +90,6 @@ lakes <- ggplot(data = top_lakes, aes(x = reorder(lake_id, -count),
            show.legend = FALSE) +
   theme_bw() +
   labs(x = "Lake ID", y = "Count")
-
 ```
 
 ```{r}
