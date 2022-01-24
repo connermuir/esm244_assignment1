@@ -122,7 +122,7 @@ plot_grid(title, plots, legend, ncol = 1,
 
 **Figure 1:** *The left graph provides a count of observed Mountain Yellow-legged Frogs (combining adults and sub-adults) across the five lakes (by Lake ID) with the highest recorded counts. The graph on the right provides a count of observed Mountain Yellow-legged Frogs across all lakes by life stage and year between 1995 and 2002.*
 
-The visualization above shows that Mountain Yellow-legged Frog counts were relatively consistent across the five lakes with the highest observed numbers. It also indicates that the frogs are significantly spread out across all lakes. Overall, the observations of this speices increased over the study period with the hgihest numbers recorded in the final year of the study (2002). 
+The visualization above shows that Mountain Yellow-legged Frog counts were significantly higher in the two lakes with the highest observed numbers. Overall, the observations of this species increased over the study period with the highest numbers recorded in the final year of the study (2002). This is especially true for frogs at the tadpole life stage.  
 
 ## **Data Citation** 
 

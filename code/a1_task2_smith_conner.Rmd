@@ -5,10 +5,9 @@ date: "1/18/2022"
 output: 
   html_document: 
     theme: flatly
-    code_folding: hide
 ---
 
-```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+```{r setup, include=TRUE, message=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 
 library(tidyverse)
@@ -74,7 +73,8 @@ Model 2 has a lower corrected AIC value by more than two points, indicating it i
 folds <- 10
 fold_vec <- rep(1:folds, length.out = nrow(sea))
 
-set.seed(10)
+# Using the same set.seed value from the lab.
+set.seed(42)
 
 sea_fold <- sea %>% 
   mutate(group = sample(fold_vec, size = n(), replace = FALSE))
@@ -87,7 +87,7 @@ calc_rmse <- function(x,y) {
   return(rmse_result)
 }
 
-# The following chunk performs the 10-fold cross-validation for all three models. 
+# The following chunk performs the 10-fold cross-validation for all three models. Removed the code from the lab where we just looked at the results of one fold. 
 
 ```
 
@@ -119,6 +119,8 @@ for(i in 1:folds) {
   rmse_df <- bind_rows(rmse_df, kfold_rmse)
 }
 
+# Create a table to summarize the differences in average RMSE across all 10 folds for each of the three models. 
+
 rmse_df %>% 
   summarize(rmse_mdl1 = mean(rmse_mdl1),
             rmse_mdl2 = mean(rmse_mdl2),
@@ -127,7 +129,6 @@ rmse_df %>%
   kable_styling(bootstrap_options = "striped", 
                 position = "left", full_width = FALSE)
 
-# RMSE for Model 3 is lower than the value for Model 1 and Model 2
 ```
 
 This 10-fold cross-validation confirms that Model 3 has the best fit given the lowest RMSE value. This means that Model 3 predicts the actual observed values for oxygen concentration with the highest level of accuracy compared to the other models. The following shows the final equation generated from Model 3: 
@@ -140,6 +141,8 @@ final_mdl3 <- lm(f3, data = sea)
 
 extract_eq(model = final_mdl3, use_coefs = TRUE)
 ```
+
+Here, the temperature (t_deg_c), depth (depth_m), and phosphate concentration (po4u_m) variables have an inverse relationship with oxygen saturation. Nitrite concentration (no2u_m) has a positive relationship with oxygen saturation. 
 
 ## **Data Citation**
 
